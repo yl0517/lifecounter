@@ -21,6 +21,7 @@ class ViewController: UIViewController, UITextFieldDelegate {
     private var lifeTotals = [Int](repeating: 20, count: 8)
     private var currentPlayers = 2
     private var gameStarted = false
+    private var history: [String] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -43,64 +44,75 @@ class ViewController: UIViewController, UITextFieldDelegate {
     
     // MARK: – Add Player
     @IBAction func addPlayerTapped(_ sender: UIButton) {
-      guard currentPlayers < playerRows.count else { return }
-      playerRows[currentPlayers].isHidden = false
-      lifeTotals[currentPlayers] = 20
-      currentPlayers += 1
-      updateAllLabels()
+        guard currentPlayers < playerRows.count else { return }
+        playerRows[currentPlayers].isHidden = false
+        lifeTotals[currentPlayers] = 20
+        currentPlayers += 1
+        updateAllLabels()
 
-      if currentPlayers == playerRows.count {
-        addPlayerButton.isEnabled = false
-      }
+        if currentPlayers == playerRows.count {
+          addPlayerButton.isEnabled = false
+        }
     }
 
     // MARK: – +/– IBActions
     @IBAction func plusMinusTapped(_ sender: UIButton) {
-      let idx = abs(sender.tag) - 1
-      let delta = sender.tag > 0 ?  1 : -1
-      adjustLife(at: idx, by: delta)
+        let idx = abs(sender.tag) - 1
+        let delta = sender.tag > 0 ?  1 : -1
+        adjustLife(at: idx, by: delta)
     }
 
     // MARK: – Apply IBActions
     @IBAction func applyTapped(_ sender: UIButton) {
-      let idx = sender.tag - 1
-      guard
-        idx < deltaFields.count,
-        let text = deltaFields[idx].text,
-        let delta = Int(text)
-      else { return }
-      adjustLife(at: idx, by: delta)
-      deltaFields[idx].resignFirstResponder()
+        let idx = sender.tag - 1
+        guard
+            idx < deltaFields.count,
+            let text = deltaFields[idx].text,
+            let delta = Int(text)
+        else { return }
+        adjustLife(at: idx, by: delta)
+        deltaFields[idx].resignFirstResponder()
     }
 
     // MARK: – Core Logic
     private func adjustLife(at idx: Int, by delta: Int) {
-      // disable Add on first change
-      if !gameStarted {
-        gameStarted = true
-        addPlayerButton.isEnabled = false
-      }
-      lifeTotals[idx] += delta
-      updateAllLabels()
+        // disable Add on first change
+        if !gameStarted {
+            gameStarted = true
+            addPlayerButton.isEnabled = false
+        }
+    
+        if delta > 0 {
+            history.append("Player \(idx+1) gained \(delta) life.")
+        } else if delta < 0 {
+            history.append("Player \(idx+1) lost \(-delta) life.")
+        }
+        lifeTotals[idx] += delta
+        updateAllLabels()
     }
 
     private func updateAllLabels() {
-      for i in 0..<currentPlayers {
-        let life = lifeTotals[i]
-        lifeLabels[i].text = "Life: \(life)"
-          if life <= 0 {
-              loseLabel.text = "Player " + String(i + 1) + " LOSES!"
-              loseLabel.isHidden = false
-          }
-      }
+        for i in 0..<currentPlayers {
+            let life = lifeTotals[i]
+            lifeLabels[i].text = "Life: \(life)"
+            if life <= 0 {
+                loseLabel.text = "Player \(i+1) LOSES!"
+                loseLabel.isHidden = false
+                history.append("Player \(i+1) LOSES!")
+            }
+        }
     }
 
     // MARK: – UITextFieldDelegate (restrict to digits & “-”)
-    func textField(_ textField: UITextField,
-                   shouldChangeCharactersIn range: NSRange,
-                   replacementString string: String) -> Bool {
-      let allowed = CharacterSet(charactersIn: "-0123456789")
-      return string.rangeOfCharacter(from: allowed.inverted) == nil
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        let allowed = CharacterSet(charactersIn: "-0123456789")
+        return string.rangeOfCharacter(from: allowed.inverted) == nil
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "ShowHistory", let histVC = segue.destination as? HistoryViewController {
+            histVC.history = self.history
+        }
     }
 }
 
