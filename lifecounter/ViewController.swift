@@ -7,97 +7,100 @@
 
 import UIKit
 
-class ViewController: UIViewController {
-    
-    @IBOutlet var p1plus: UIButton!
-    @IBOutlet var p1minus: UIButton!
-    @IBOutlet var p1DeltaField: UITextField!
-    @IBOutlet var p1ApplyButton: UIButton!
- 
-    @IBOutlet var p2plus: UIButton!
-    @IBOutlet var p2minus: UIButton!
-    @IBOutlet var p2plus5: UIButton!
-    @IBOutlet var p2minus5: UIButton!
-    
-    @IBOutlet var player1LifeLabel: UILabel!
-    @IBOutlet var player2LifeLabel: UILabel!
+class ViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet var loseLabel: UILabel!
 
+    @IBOutlet var playerRows: [UIView]!
+    @IBOutlet var lifeLabels: [UILabel]!         // “Life: XX”
+    @IBOutlet var plusButtons: [UIButton]!       // +1
+    @IBOutlet var minusButtons: [UIButton]!      // –1
+    @IBOutlet var deltaFields: [UITextField]!    // numeric input
+    @IBOutlet var applyButtons: [UIButton]!      // “Apply”
+    @IBOutlet weak var addPlayerButton: UIButton!
+
+    private var lifeTotals = [Int](repeating: 20, count: 8)
+    private var currentPlayers = 2
+    private var gameStarted = false
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        print("player1LifeLabel is", player1LifeLabel as Any)
-        print("player2LifeLabel is", player2LifeLabel as Any)
         
-        p1plus.tag = 1
-        p1minus.tag = -1
-        
-        p2plus.tag = 1
-        p2minus.tag = -1
-        p2plus5.tag = 5
-        p2minus5.tag = -5
-        
-        loseLabel.textColor = .red
-        loseLabel.font = UIFont.boldSystemFont(ofSize: 36)
-        loseLabel.textAlignment = .center
-        loseLabel.isHidden = true
-        
-        updateLabels()
-    }
-    
-    @IBAction func player1ButtonTapped(_ sender: UIButton) {
-        print("tapped Player 1 button “\(sender.currentTitle ?? "?")”")
-        adjustLife(for: 1, button: sender)
-    }
-    
-    @IBAction func p1ApplyTapped(_ sender: UIButton) {
-        guard let text = p1DeltaField.text, let delta = Int(text) else { return }
-        adjustLife(for: 1, delta: delta)
-        p1DeltaField.resignFirstResponder()
-    }
-
-    @IBAction func player2ButtonTapped(_ sender: UIButton) {
-        print("tapped Player 2 button “\(sender.currentTitle ?? "?")”")
-        adjustLife(for: 2, button: sender)
-    }
-
-    var player1Life = 20
-    var player2Life = 20
-    
-    func updateLabels() {
-        player1LifeLabel.text = "Life: \(player1Life)"
-        player2LifeLabel.text = "Life: \(player2Life)"
-
-        if player1Life <= 0 {
-            loseLabel.text = "Player 1 LOSES!"
-            loseLabel.isHidden = false
-        } else if player2Life <= 0 {
-            loseLabel.text = "Player 2 LOSES!"
-            loseLabel.isHidden = false
-        } else {
-            loseLabel.text = ""
-            loseLabel.isHidden = true
+        for i in currentPlayers..<playerRows.count {
+            playerRows[i].isHidden = true
         }
-    }
-
-    func adjustLife(for player: Int, button: UIButton) {
-        let delta = button.tag
-
-        if player == 1 {
-            player1Life += delta
-        } else {
-            player2Life += delta
+        
+        for i in 0..<playerRows.count {
+            plusButtons[i].tag  = i + 1
+            minusButtons[i].tag = -(i + 1)
+            applyButtons[i].tag = i + 1
+            deltaFields[i].delegate = self
+            deltaFields[i].keyboardType = .numbersAndPunctuation
+            deltaFields[i].text = "0"
         }
-
-        updateLabels()
+        
+        updateAllLabels()
     }
     
-    func adjustLife(for player: Int, delta: Int) {
-        if player == 1 {
-            player1Life += delta
-        } else {
-            player2Life += delta
-        }
-        updateLabels()
+    // MARK: – Add Player
+    @IBAction func addPlayerTapped(_ sender: UIButton) {
+      guard currentPlayers < playerRows.count else { return }
+      playerRows[currentPlayers].isHidden = false
+      lifeTotals[currentPlayers] = 20
+      currentPlayers += 1
+      updateAllLabels()
+
+      if currentPlayers == playerRows.count {
+        addPlayerButton.isEnabled = false
+      }
+    }
+
+    // MARK: – +/– IBActions
+    @IBAction func plusMinusTapped(_ sender: UIButton) {
+      let idx = abs(sender.tag) - 1
+      let delta = sender.tag > 0 ?  1 : -1
+      adjustLife(at: idx, by: delta)
+    }
+
+    // MARK: – Apply IBActions
+    @IBAction func applyTapped(_ sender: UIButton) {
+      let idx = sender.tag - 1
+      guard
+        idx < deltaFields.count,
+        let text = deltaFields[idx].text,
+        let delta = Int(text)
+      else { return }
+      adjustLife(at: idx, by: delta)
+      deltaFields[idx].resignFirstResponder()
+    }
+
+    // MARK: – Core Logic
+    private func adjustLife(at idx: Int, by delta: Int) {
+      // disable Add on first change
+      if !gameStarted {
+        gameStarted = true
+        addPlayerButton.isEnabled = false
+      }
+      lifeTotals[idx] += delta
+      updateAllLabels()
+    }
+
+    private func updateAllLabels() {
+      for i in 0..<currentPlayers {
+        let life = lifeTotals[i]
+        lifeLabels[i].text = "Life: \(life)"
+          if life <= 0 {
+              loseLabel.text = "Player " + String(i + 1) + " LOSES!"
+              loseLabel.isHidden = false
+          }
+      }
+    }
+
+    // MARK: – UITextFieldDelegate (restrict to digits & “-”)
+    func textField(_ textField: UITextField,
+                   shouldChangeCharactersIn range: NSRange,
+                   replacementString string: String) -> Bool {
+      let allowed = CharacterSet(charactersIn: "-0123456789")
+      return string.rangeOfCharacter(from: allowed.inverted) == nil
     }
 }
 
