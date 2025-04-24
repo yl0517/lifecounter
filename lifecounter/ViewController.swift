@@ -11,9 +11,9 @@ class ViewController: UIViewController {
     
     @IBOutlet var p1plus: UIButton!
     @IBOutlet var p1minus: UIButton!
-    @IBOutlet var p1plus5: UIButton!
-    @IBOutlet var p1minus5: UIButton!
-    
+    @IBOutlet var p1DeltaField: UITextField!
+    @IBOutlet var p1ApplyButton: UIButton!
+ 
     @IBOutlet var p2plus: UIButton!
     @IBOutlet var p2minus: UIButton!
     @IBOutlet var p2plus5: UIButton!
@@ -30,8 +30,6 @@ class ViewController: UIViewController {
         
         p1plus.tag = 1
         p1minus.tag = -1
-        p1plus5.tag = 5
-        p1minus5.tag = -5
         
         p2plus.tag = 1
         p2minus.tag = -1
@@ -49,6 +47,12 @@ class ViewController: UIViewController {
     @IBAction func player1ButtonTapped(_ sender: UIButton) {
         print("tapped Player 1 button “\(sender.currentTitle ?? "?")”")
         adjustLife(for: 1, button: sender)
+    }
+    
+    @IBAction func p1ApplyTapped(_ sender: UIButton) {
+        guard let text = p1DeltaField.text, let delta = Int(text) else { return }
+        adjustLife(for: 1, delta: delta)
+        p1DeltaField.resignFirstResponder()
     }
 
     @IBAction func player2ButtonTapped(_ sender: UIButton) {
@@ -84,6 +88,15 @@ class ViewController: UIViewController {
             player2Life += delta
         }
 
+        updateLabels()
+    }
+    
+    func adjustLife(for player: Int, delta: Int) {
+        if player == 1 {
+            player1Life += delta
+        } else {
+            player2Life += delta
+        }
         updateLabels()
     }
 }
